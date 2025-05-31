@@ -17,7 +17,7 @@ import {
   Search,
   Loader2,
 } from "lucide-react";
-import { useWallet } from "@/hooks/use-wallet";
+import { useSuiWallet } from "@/hooks/use-wallet";
 
 interface NFT {
   id: string;
@@ -37,7 +37,7 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [walletNFTs, setWalletNFTs] = useState<NFT[]>([]);
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(false);
-  const { isConnected, address } = useWallet();
+  const { isConnected, address } = useSuiWallet();
 
   // Simulate fetching NFTs when wallet is connected
   useEffect(() => {

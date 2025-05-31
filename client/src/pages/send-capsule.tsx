@@ -23,10 +23,8 @@ import {
   Image as ImageIcon,
   Shield,
   Rocket,
-  Upload,
-  Wallet,
 } from "lucide-react";
-import { useWallet } from "@/hooks/use-wallet";
+import { useSuiWallet } from "@/hooks/use-wallet";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { NFTSelector } from "@/components/nft-selector";
@@ -46,7 +44,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function SendCapsule() {
-  const { address, isConnected } = useWallet();
+  const { address, isConnected } = useSuiWallet();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 

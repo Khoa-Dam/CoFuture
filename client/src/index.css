@@ -40,17 +40,22 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
   }
 }
 
 @layer utilities {
   .gradient-border {
-    background: linear-gradient(135deg, hsl(var(--primary-cyan)), hsl(var(--primary-blue)), hsl(var(--secondary-purple)));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary-cyan)),
+      hsl(var(--primary-blue)),
+      hsl(var(--secondary-purple))
+    );
     padding: 1px;
     border-radius: 12px;
   }
-  
+
   .gradient-border-content {
     background: hsl(var(--card));
     border-radius: 11px;
@@ -62,15 +67,28 @@
   }
 
   .capsule-unlockable {
-    background: linear-gradient(135deg, hsl(var(--primary-cyan) / 0.2), hsl(var(--primary-blue) / 0.2));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary-cyan) / 0.2),
+      hsl(var(--primary-blue) / 0.2)
+    );
   }
 
   .capsule-claimed {
-    background: linear-gradient(135deg, hsl(var(--success-green) / 0.2), hsl(159 58% 35% / 0.2));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--success-green) / 0.2),
+      hsl(159 58% 35% / 0.2)
+    );
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary-cyan)), hsl(var(--primary-blue)), hsl(var(--secondary-purple)));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary-cyan)),
+      hsl(var(--primary-blue)),
+      hsl(var(--secondary-purple))
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -78,13 +96,23 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 @keyframes glow {
-  from { box-shadow: 0 0 20px hsl(var(--primary-cyan) / 0.4); }
-  to { box-shadow: 0 0 30px hsl(var(--primary-cyan) / 0.8), 0 0 40px hsl(var(--primary-blue) / 0.4); }
+  from {
+    box-shadow: 0 0 20px hsl(var(--primary-cyan) / 0.4);
+  }
+  to {
+    box-shadow: 0 0 30px hsl(var(--primary-cyan) / 0.8),
+      0 0 40px hsl(var(--primary-blue) / 0.4);
+  }
 }
 
 .animate-float {

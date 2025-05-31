@@ -3,12 +3,12 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { CapsuleCard } from "@/components/capsule-card";
 import { CapsuleModal } from "@/components/capsule-modal";
-import { useWallet } from "@/hooks/use-wallet";
+import { useSuiWallet } from "@/hooks/use-wallet";
 
 type FilterType = "all" | "locked" | "unlockable" | "claimed";
 
 export default function CapsuleList() {
-  const { address, isConnected } = useWallet();
+  const { address, isConnected } = useSuiWallet();
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedCapsule, setSelectedCapsule] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);

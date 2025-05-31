@@ -1,26 +1,24 @@
-import { useState, useEffect } from "react";
-import { walletService, type WalletState } from "@/lib/wallet";
+import {
+  useCurrentAccount,
+  useConnectWallet,
+  useDisconnectWallet,
+} from "@mysten/dapp-kit";
 
-export function useWallet() {
-  const [walletState, setWalletState] = useState<WalletState>(walletService.getState());
-
-  useEffect(() => {
-    const unsubscribe = walletService.subscribe(setWalletState);
-    return unsubscribe;
-  }, []);
-
-  const connect = async () => {
-    return await walletService.connect();
-  };
-
-  const disconnect = () => {
-    walletService.disconnect();
-  };
+export function useSuiWallet() {
+  const currentAccount = useCurrentAccount();
+  const { mutate: connect, isPending: isConnecting } = useConnectWallet();
+  const { mutate: disconnect } = useDisconnectWallet();
 
   return {
-    ...walletState,
+    isConnected: !!currentAccount,
+    address: currentAccount?.address || null,
+    isConnecting: isConnecting,
     connect,
     disconnect,
-    formatAddress: walletService.formatAddress,
+    // formatAddress can be a utility function if needed
+    formatAddress: (address: string | null) =>
+      address ? `${address.slice(0, 6)}...${address.slice(-4)}` : null,
+    // You might add functions here to interact with suiClient based on connected account
+    // For example, fetching balance or NFTs using suiClient and currentAccount
   };
 }
