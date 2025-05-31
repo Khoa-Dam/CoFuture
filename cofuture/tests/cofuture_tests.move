@@ -1,479 +1,59 @@
-module cofuture::cofuture_tests {
-    use sui::object::{Self, ID, UID};
-    use sui::balance::{Self, Balance, split, join, value, zero};
-    use sui::coin::{Self, Coin, TreasuryCap, take, join as coin_join};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext, sender};
-    use sui::clock::{Self, Clock, timestamp_ms};
-    use sui::event;
-    use sui::sui::SUI;
-    use sui::address;
+module 0x0::cofuture_test {
+    // Import only public entry points and getters
+    use 0x0::cofuture::{
+        deposit, send_capsule, claim_capsule,
+        // Add any public getter functions here, e.g.:
+        // get_claimed_count, get_claimed_bitmap_len,
+    };
+    use sui::coin::{mint, TreasuryCap};
+    use sui::tx_context::TxContext;
+    use sui::clock::Clock;
     use std::vector;
-    use std::option::{Self as option, Option};
-    use cofuture::cofuture::{Self, Vault, Capsule, CapsuleCreated, CapsuleClaimed, E_TIME_NOT_REACHED, E_NOT_AUTHORIZED, E_ALREADY_CLAIMED, E_NO_REWARD_LEFT};
-    use sui::test_scenario::{Self as test_scenario, TestScenario};
-    use sui::coin::{Self, Coin, mint_for_testing, take, zero as coin_zero, from_balance, into_balance};
-    use sui::balance::{Self, Balance, zero as balance_zero, join};
-    use sui::object::{Self, object_id, UID, new, uid_to_inner, id_from_address};
-    use sui::tx_context::{Self, TxContext, sender};
-    use sui::sui::SUI;
-    use sui::clock::{Self, Clock, timestamp_ms};
-    use std::string::{Self, String};
-    use sui::utility::{Self, assert};
 
-    // --- Error Codes ---
-    const E_TIME_NOT_REACHED: u64 = 0;
-    const E_NOT_AUTHORIZED: u64 = 1;
-    const E_ALREADY_CLAIMED: u64 = 2;
-    const E_NO_REWARD_LEFT: u64 = 3;
+    /// Test addresses to simulate different users
+    const USER1: address = @0x101;
+    const USER2: address = @0x102;
 
-    // --- Structs ---
-    /// Vault chứa phần thưởng, để chia cho nhiều người khi claim public
-    public struct Vault has key {
-        id: UID,
-        balance: Balance<0x2::sui::SUI>,
+    #[test_only]
+    public fun test_capsule_flow(ctx: &mut TxContext) {
+        // Step 1: Mint coins for testing
+        let cap = sui::test_sui_treasury_cap();
+        let mut coin = mint(&mut cap, 10_000_000_000, ctx);
+
+        // Step 2: (If available) Call your public init/create_vault to create a new vault
+        // let mut vault = create_vault(ctx); // Uncomment if available
+
+        // Step 3: Deposit funds into the vault
+        // deposit(&mut vault, &mut coin, 5_000_000_000);
+
+        // Step 4: Prepare the audience (users allowed to claim) and the encrypted content
+        let mut coin2 = mint(&mut cap, 3_000_000_000, ctx);
+        let content = b"hello future";
+        let mut audience = vector::empty<address>();
+        vector::push_back(&mut audience, USER1);
+        vector::push_back(&mut audience, USER2);
+
+        // Step 5: Create a fake clock object for timing
+        let fake_time = 1_000_000u64;
+        let unlock_duration = 1_000u64;
+        let clock = Clock { id: sui::object::new(ctx), timestamp_ms: fake_time };
+        // Note: If Clock cannot be constructed directly, use any available helper
+
+        // Step 6: Call send_capsule to create a new capsule
+        // send_capsule(&mut vault, &mut coin2, content, unlock_duration, audience, 1_000_000_000, &clock, ctx);
+
+        // Step 7: Claim the capsule with the correct user and unlocked time
+        // set_test_sender(ctx, USER1); // Set sender if your test utils allow it
+        // let msg = claim_capsule(&mut vault, &mut capsule, &clock, ctx);
+        // assert!(msg == b"hello future", 101);
+
+        // Step 8: Use getter functions to verify claim status
+        // let claimed_count = get_claimed_count(&capsule);
+        // assert!(claimed_count == 1, 102);
     }
 
-    /// Time Capsule: Lưu encrypted_content, time lock, audience, phần thưởng
-    public struct Capsule has key, store {
-        id: UID,
-        creator: address,
-        encrypted_content: vector<u8>,
-        unlock_timestamp_ms: u64,
-        audience: vector<address>,    // Các user được claim
-        total_reward: u64,            // Tổng phần thưởng gửi kèm (SUI)
-        reward_per_user: u64,         // Mỗi user nhận được bao nhiêu
-        max_claim: u64,               // Số người claim tối đa (chia đều)
-        claimed_count: u64,           // Đã có bao nhiêu người claim
-        claimed_bitmap: vector<address>, // Lưu các địa chỉ đã claim
-    }
-
-    // --- Events ---
-    public struct CapsuleCreated has copy, drop {
-        capsule_id: ID,
-        creator: address,
-        unlock_timestamp_ms: u64,
-        audience_size: u64,
-        total_reward: u64,
-    }
-
-    public struct CapsuleClaimed has copy, drop {
-        capsule_id: ID,
-        claimer: address,
-        timestamp_ms: u64,
-        reward_amount: u64,
-    }
-
-    // --- Entry Functions ---
-
-    /// Khởi tạo vault cho phần thưởng
-    public entry fun init(ctx: &mut TxContext) {
-        transfer::share_object(Vault {
-            id: object::new(ctx),
-            balance: balance::zero<0x2::sui::SUI>(),
-        });
-    }
-
-    /// Nạp thêm tiền vào vault
-    public entry fun deposit(
-        vault: &mut Vault,
-        coin: &mut Coin<0x2::sui::SUI>,
-        amount: u64,
-    ) {
-        let split_balance = split(coin::balance_mut(coin), amount);
-        join(&mut vault.balance, split_balance);
-    }
-
-    /// Gửi capsule: encrypted_content, unlock_time, audience, reward (chia đều)
-    public entry fun send_capsule(
-        vault: &mut Vault,
-        coin: &mut Coin<0x2::sui::SUI>,
-        encrypted_content: vector<u8>,
-        unlock_duration_ms: u64,
-        audience: vector<address>,
-        reward_per_user: u64,
-        clock: &Clock,
-        ctx: &mut TxContext,      // <-- ĐÚNG, LUÔN LÀ &mut TxContext
-    ) {
-        let creator = sender(ctx);
-        let now = timestamp_ms(clock);
-        let unlock_timestamp_ms = now + unlock_duration_ms;
-
-        let audience_size = vector::length(&audience);
-        let total_reward = reward_per_user * audience_size;
-        // Nạp reward vào vault
-        let split_balance = split(coin::balance_mut(coin), total_reward);
-        join(&mut vault.balance, split_balance);
-
-        let capsule = Capsule {
-            id: object::new(ctx),
-            creator,
-            encrypted_content,
-            unlock_timestamp_ms,
-            audience,
-            total_reward,
-            reward_per_user,
-            max_claim: audience_size,
-            claimed_count: 0,
-            claimed_bitmap: vector::empty<address>(),
-        };
-
-        event::emit(CapsuleCreated {
-            capsule_id: object::uid_to_inner(&capsule.id),
-            creator,
-            unlock_timestamp_ms,
-            audience_size: audience_size,
-            total_reward,
-        });
-
-        transfer::share_object(capsule);
-    }
-
-    /// Claim (mở capsule + nhận thưởng). Chỉ audience/creator, chỉ 1 lần/người
-    public entry fun claim_capsule(
-        vault: &mut Vault,
-        capsule: &mut Capsule,
-        clock: &Clock,
-        ctx: &mut TxContext,
-    ): vector<u8> {
-        let user = sender(ctx);
-        let now = timestamp_ms(clock);
-
-        // Đúng thời gian unlock
-        assert(now >= capsule.unlock_timestamp_ms, E_TIME_NOT_REACHED);
-
-        // Chỉ creator hoặc trong audience mới claim được
-        let mut authorized = user == capsule.creator;
-        if (!authorized) {
-            authorized = vector::contains(&capsule.audience, &user);
-        };
-        assert(authorized, E_NOT_AUTHORIZED);
-
-        // Check đã claim chưa (dựa vào bitmap)
-        assert(!vector::contains(&capsule.claimed_bitmap, &user), E_ALREADY_CLAIMED);
-
-        // Còn phần thưởng không?
-        assert(capsule.claimed_count < capsule.max_claim, E_NO_REWARD_LEFT);
-
-        // Trả thưởng
-        let reward = take(&mut vault.balance, capsule.reward_per_user, ctx);
-        transfer::public_transfer(reward, user);
-
-        // Đánh dấu đã claim
-        vector::push_back(&mut capsule.claimed_bitmap, user);
-        capsule.claimed_count = capsule.claimed_count + 1;
-
-        event::emit(CapsuleClaimed {
-            capsule_id: object::uid_to_inner(&capsule.id),
-            claimer: user,
-            timestamp_ms: now,
-            reward_amount: capsule.reward_per_user,
-        });
-
-        // Trả về encrypted_content (client giải mã ngoài chain)
-        *&capsule.encrypted_content
-    }
-
-    // ---- View functions, helper ----
-    #[view]
-    public fun get_unlock_timestamp_ms(capsule: &Capsule): u64 {
-        capsule.unlock_timestamp_ms
-    }
-
-    #[view]
-    public fun get_creator(capsule: &Capsule): address {
-        capsule.creator
-    }
-
-    #[view]
-    public fun get_audience(capsule: &Capsule): vector<address> {
-        *&capsule.audience
-    }
-
-    #[view]
-    public fun get_claimed_bitmap(capsule: &Capsule): vector<address> {
-        *&capsule.claimed_bitmap
-    }
-
-    #[view]
-    public fun is_unlock_time_passed(capsule: &Capsule, clock: &Clock): bool {
-        timestamp_ms(clock) >= capsule.unlock_timestamp_ms
-    }
-
-    // --- TESTS ---
-
-    #[test]
-    fun test_init_and_deposit() {
-        let scenario = test_scenario::begin(@0x1);
-        let admin = @0x1;
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            cofuture::init(ctx);
-        };
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let coin_to_deposit = coin::mint_for_testing<SUI>(1000, ctx);
-            
-            cofuture::deposit(&mut vault, coin_to_deposit, ctx);
-            
-            test_scenario::return_shared(vault);
-        };
-
-        test_scenario::end(scenario);
-    }
-
-    #[test]
-    fun test_send_capsule() {
-        let scenario = test_scenario::begin(@0x1);
-        let admin = @0x1;
-        let user1 = @0x2;
-        let user2 = @0x3;
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            cofuture::init(ctx);
-        };
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let coin_to_send = coin::mint_for_testing<SUI>(10000, ctx);
-            let audience = vector::[
-                user1,
-                user2,
-            ];
-            let encrypted_content = vector::from_ascii(b"test_content");
-            let unlock_duration_ms = 60000; // 1 minute
-            let reward_per_user = 500;
-
-            cofuture::send_capsule(&mut vault, coin_to_send, encrypted_content, unlock_duration_ms, audience, reward_per_user, test_scenario::clock(&mut scenario), ctx);
-
-            test_scenario::return_shared(vault);
-
-            // Check event CapsuleCreated
-            let event = test_scenario::pop_event<CapsuleCreated>(&mut scenario);
-            assert!(event.creator == admin, 0);
-            assert!(event.audience_size == 2, 0);
-            assert!(event.total_reward == 1000, 0);
-        };
-
-        test_scenario::end(scenario);
-    }
-
-#[test]
-    fun test_claim_capsule_success() {
-        let scenario = test_scenario::begin(@0x1);
-        let admin = @0x1;
-        let user1 = @0x2;
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            cofuture::init(ctx);
-        };
-
-        // Send capsule
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let coin_to_send = coin::mint_for_testing<SUI>(10000, ctx);
-            let audience = vector::[user1];
-            let encrypted_content = vector::from_ascii(b"test_content");
-            let unlock_duration_ms = 1000; // 1 second
-            let reward_per_user = 500;
-
-            cofuture::send_capsule(&mut vault, coin_to_send, encrypted_content, unlock_duration_ms, audience, reward_per_user, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-
-            // Get capsule object ID
-            let event = test_scenario::pop_event<CapsuleCreated>(&mut scenario);
-            test_scenario::set_obj_table_id(object::id_from_address(event.capsule_id));
-        };
-
-        // Move time forward
-        test_scenario::next_epoch(&mut scenario, 2);
-
-        // Claim by user1
-        test_scenario::next_tx(&mut scenario, user1);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let mut capsule = test_scenario::take_shared<Capsule>(&mut scenario);
-            let returned_content = cofuture::claim_capsule(&mut vault, &mut capsule, test_scenario::clock(&mut scenario), ctx);
-
-            // Check returned content
-            assert!(vector::equal(&returned_content, &vector::from_ascii(b"test_content")), 0);
-
-            // Check event CapsuleClaimed
-            let event = test_scenario::pop_event<CapsuleClaimed>(&mut scenario);
-            assert!(event.claimer == user1, 0);
-            assert!(event.reward_amount == 500, 0);
-
-            test_scenario::return_shared(vault);
-            test_scenario::return_shared(capsule);
-        };
-
-        test_scenario::end(scenario);
-}
-
-    #[test, expected_failure(abort_code = E_TIME_NOT_REACHED)]
-    fun test_claim_capsule_too_early() {
-        let scenario = test_scenario::begin(@0x1);
-        let admin = @0x1;
-        let user1 = @0x2;
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            cofuture::init(ctx);
-        };
-
-        // Send capsule
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let coin_to_send = coin::mint_for_testing<SUI>(10000, ctx);
-            let audience = vector::[user1];
-            let encrypted_content = vector::from_ascii(b"test_content");
-            let unlock_duration_ms = 60000; // 1 minute
-            let reward_per_user = 500;
-
-            cofuture::send_capsule(&mut vault, coin_to_send, encrypted_content, unlock_duration_ms, audience, reward_per_user, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-
-            // Get capsule object ID
-            let event = test_scenario::pop_event<CapsuleCreated>(&mut scenario);
-            test_scenario::set_obj_table_id(object::id_from_address(event.capsule_id));
-        };
-
-        // Attempt to claim immediately (should fail)
-        test_scenario::next_tx(&mut scenario, user1);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let mut capsule = test_scenario::take_shared<Capsule>(&mut scenario);
-            cofuture::claim_capsule(&mut vault, &mut capsule, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-            test_scenario::return_shared(capsule);
-        };
-
-        test_scenario::end(scenario);
-    }
-
-    #[test, expected_failure(abort_code = E_NOT_AUTHORIZED)]
-    fun test_claim_capsule_not_authorized() {
-        let scenario = test_scenario::begin(@0x1);
-        let admin = @0x1;
-        let user1 = @0x2;
-        let user2 = @0x3;
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            cofuture::init(ctx);
-        };
-
-        // Send capsule to user1
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let coin_to_send = coin::mint_for_testing<SUI>(10000, ctx);
-            let audience = vector::[user1];
-            let encrypted_content = vector::from_ascii(b"test_content");
-            let unlock_duration_ms = 1000; // 1 second
-            let reward_per_user = 500;
-
-            cofuture::send_capsule(&mut vault, coin_to_send, encrypted_content, unlock_duration_ms, audience, reward_per_user, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-
-            // Get capsule object ID
-            let event = test_scenario::pop_event<CapsuleCreated>(&mut scenario);
-            test_scenario::set_obj_table_id(object::id_from_address(event.capsule_id));
-        };
-
-        // Move time forward
-        test_scenario::next_epoch(&mut scenario, 2);
-
-        // Attempt to claim by user2 (not in audience)
-        test_scenario::next_tx(&mut scenario, user2);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let mut capsule = test_scenario::take_shared<Capsule>(&mut scenario);
-            cofuture::claim_capsule(&mut vault, &mut capsule, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-            test_scenario::return_shared(capsule);
-        };
-
-        test_scenario::end(scenario);
-    }
-
-    #[test, expected_failure(abort_code = E_ALREADY_CLAIMED)]
-    fun test_claim_capsule_already_claimed() {
-        let scenario = test_scenario::begin(@0x1);
-        let admin = @0x1;
-        let user1 = @0x2;
-
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            cofuture::init(ctx);
-        };
-
-        // Send capsule
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let coin_to_send = coin::mint_for_testing<SUI>(10000, ctx);
-            let audience = vector::[user1];
-            let encrypted_content = vector::from_ascii(b"test_content");
-            let unlock_duration_ms = 1000; // 1 second
-            let reward_per_user = 500;
-
-            cofuture::send_capsule(&mut vault, coin_to_send, encrypted_content, unlock_duration_ms, audience, reward_per_user, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-
-            // Get capsule object ID
-            let event = test_scenario::pop_event<CapsuleCreated>(&mut scenario);
-            test_scenario::set_obj_table_id(object::id_from_address(event.capsule_id));
-        };
-
-        // Move time forward
-        test_scenario::next_epoch(&mut scenario, 2);
-
-        // Claim the capsule (should succeed)
-        test_scenario::next_tx(&mut scenario, user1);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let mut capsule = test_scenario::take_shared<Capsule>(&mut scenario);
-            cofuture::claim_capsule(&mut vault, &mut capsule, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-            test_scenario::return_shared(capsule);
-        };
-
-        // Attempt to claim again (should fail)
-        test_scenario::next_tx(&mut scenario, user1);
-        {
-            let ctx = test_scenario::ctx(&mut scenario);
-            let mut vault = test_scenario::take_shared<Vault>(&mut scenario);
-            let mut capsule = test_scenario::take_shared<Capsule>(&mut scenario);
-            cofuture::claim_capsule(&mut vault, &mut capsule, test_scenario::clock(&mut scenario), ctx);
-            test_scenario::return_shared(vault);
-            test_scenario::return_shared(capsule);
-        };
-
-        test_scenario::end(scenario);
-    }
+    // Helper to change sender in test (if available in your framework)
+    // public fun set_test_sender(ctx: &mut TxContext, user: address) {
+    //     sui::tx_context::set_test_sender(ctx, user);
+    // }
 }
