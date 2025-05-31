@@ -1,12 +1,7 @@
-import { SuiClient, getFullnodeUrl } from "@mysten/sui.js/client";
-
-// Initialize Sui client
-export const suiClient = new SuiClient({
-  url: getFullnodeUrl("devnet"), // Use devnet for development
-});
+import { SuiClient } from "@mysten/sui.js/client";
 
 // Fetch NFTs from the connected wallet
-export async function getNFTs(address: string) {
+export async function getNFTs(suiClient: SuiClient, address: string) {
   try {
     const objects = await suiClient.getOwnedObjects({
       owner: address,
