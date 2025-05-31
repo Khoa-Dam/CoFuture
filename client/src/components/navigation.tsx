@@ -1,13 +1,11 @@
-import { ConnectButton } from "@mysten/dapp-kit";
+import { ConnectButton, useAccounts, useSwitchAccount } from "@mysten/dapp-kit";
 
 import { Link, useLocation } from "wouter";
 import logoPath from "@assets/image_1748619552209.png";
 
-interface NavigationProps {
-  onNotificationClick: () => void;
-}
-
 export function Navigation() {
+  const { mutate: switchAccount } = useSwitchAccount();
+  const accounts = useAccounts();
   const [location] = useLocation();
 
   const isActive = (path: string) => location === path;
@@ -61,7 +59,28 @@ export function Navigation() {
               My Capsules
             </Link>
           </div>
-          <ConnectButton />
+          <div style={{ padding: 20 }}>
+            <ConnectButton />
+            <ul>
+              {accounts.map((account) => (
+                <li key={account.address}>
+                  <button
+                    onClick={() => {
+                      switchAccount(
+                        { account },
+                        {
+                          onSuccess: () =>
+                            console.log(`switched to ${account.address}`),
+                        }
+                      );
+                    }}
+                  >
+                    Switch to {account.address}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </nav>

@@ -17,7 +17,7 @@ import {
   Search,
   Loader2,
 } from "lucide-react";
-import { useSuiWallet } from "@/hooks/use-wallet";
+import { useSuiWallet } from "@/hooks/use-sui-wallet";
 
 interface NFT {
   id: string;

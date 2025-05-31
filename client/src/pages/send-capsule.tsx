@@ -24,7 +24,7 @@ import {
   Shield,
   Rocket,
 } from "lucide-react";
-import { useSuiWallet } from "@/hooks/use-wallet";
+import { useSuiWallet } from "@/hooks/use-sui-wallet";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { NFTSelector } from "@/components/nft-selector";

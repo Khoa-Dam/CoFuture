@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { CapsuleCard } from "@/components/capsule-card";
 import { CapsuleModal } from "@/components/capsule-modal";
-import { useSuiWallet } from "@/hooks/use-wallet";
+import { useSuiWallet } from "@/hooks/use-sui-wallet";
 
 type FilterType = "all" | "locked" | "unlockable" | "claimed";
 
