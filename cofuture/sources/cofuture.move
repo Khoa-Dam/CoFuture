@@ -68,12 +68,13 @@ module cofuture::cofuture {
     // --- Entry Functions ---
 
     /// Khởi tạo vault cho phần thưởng
-     fun init(ctx: &mut TxContext) {
-        transfer::share_object(Vault {
-            id: object::new(ctx),
-            balance: balance::zero<0x2::sui::SUI>(),
-        });
-    }
+    public entry fun init(ctx: &mut TxContext) {
+    let vault = Vault {
+        id: object::new(ctx),
+        balance: balance::zero<0x2::sui::SUI>(),
+    };
+    transfer::share_object(vault);
+}
 
     /// Nạp thêm tiền vào vault
     public entry fun deposit(
