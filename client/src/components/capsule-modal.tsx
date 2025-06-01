@@ -21,24 +21,21 @@ interface CapsuleModalProps {
   capsule: any | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onClaim?: () => Promise<void>; // thêm prop này
 }
 
 export function CapsuleModal({
   capsule,
   open,
   onOpenChange,
+  onClaim,
 }: CapsuleModalProps) {
   const { toast } = useToast();
 
   if (!capsule) return null;
 
   const handleClaim = async () => {
-    console.log("Simulating claiming capsule:", capsule);
-    toast({
-      title: "Simulated Claim!",
-      description: "Capsule claiming logic removed.",
-    });
-    onOpenChange(false);
+    if (onClaim) await onClaim();
   };
 
   const handleShare = () => {
@@ -180,7 +177,7 @@ export function CapsuleModal({
                 className="flex-1 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-blue-500 hover:to-purple-600 text-white font-semibold transition-all duration-300"
               >
                 <Download className="mr-2 h-4 w-4" />
-                {"Simulate Claim All Assets"}
+                Claim All Assets
               </Button>
             )}
             <Button

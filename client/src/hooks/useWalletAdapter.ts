@@ -1,6 +1,7 @@
 import {
   useCurrentAccount,
   useSuiClientContext,
+  useSuiClient,
   useSignAndExecuteTransaction,
 } from "@mysten/dapp-kit";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
@@ -12,6 +13,11 @@ export interface TransactionResult {
   success: boolean;
   txId?: string;
   rawResponse?: any;
+}
+interface SendCapsuleResult {
+  digest: string;
+  success: boolean;
+  capsuleId?: string; // Add capsuleId to the return type
 }
 
 export interface SendCapsuleParams {
@@ -33,8 +39,19 @@ export interface ClaimCapsuleParams {
 export function useWalletAdapter() {
   const currentAccount = useCurrentAccount();
   const clientContext = useSuiClientContext();
-  const currentNetwork = clientContext.network || "testnet";
-  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+  const suiClient = useSuiClient();
+  const currentNetwork = "testnet";
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction({
+    execute: async ({ bytes, signature }) =>
+      await suiClient.executeTransactionBlock({
+        transactionBlock: bytes,
+        signature,
+        options: {
+          showRawEffects: true,
+          showObjectChanges: true,
+        },
+      }),
+  });
 
   const [txResult, setTxResult] = useState<TransactionResult>({
     loading: false,
@@ -44,6 +61,7 @@ export function useWalletAdapter() {
 
   // Get packageId from env or use empty as default
   const PACKAGE_ID = import.meta.env.VITE_SUI_PACKAGE_ID || "";
+  console.log("PACKAGE_ID", PACKAGE_ID);
 
   // Transaction handler logic (can be used for all functions)
   const handleTransaction = async (tx: TransactionBlock) => {
@@ -57,7 +75,7 @@ export function useWalletAdapter() {
         txId: result.digest,
         rawResponse: result,
       });
-      return { digest: result.digest, success: true, rawResponse: result };
+      return result;
     } catch (err: any) {
       setTxResult({
         loading: false,
@@ -86,28 +104,62 @@ export function useWalletAdapter() {
   };
 
   // Send a capsule
-  const sendCapsule = async (params: SendCapsuleParams) => {
+  const sendCapsule = async (
+    params: SendCapsuleParams & { registryId: string }
+  ): Promise<SendCapsuleResult> => {
     if (!currentAccount) throw new Error("Please connect your Sui wallet");
     const tx = new TransactionBlock();
     const totalReward = BigInt(params.rewardPerUser * params.audience.length);
-    const [coin] = tx.splitCoins(tx.object(params.coinId), [totalReward]);
+
+    // 1. Split coin
+    const splitCoinResult = tx.splitCoins(tx.object(params.coinId), [
+      totalReward,
+    ]);
+
+    // 2. Call send_capsule với đủ tham số
     tx.moveCall({
       target: `${PACKAGE_ID}::cofuture::send_capsule`,
       arguments: [
         tx.object(params.vaultId),
-        coin,
+        splitCoinResult[0],
         tx.pure(params.encryptedContent),
         tx.pure(params.unlockDurationMs),
         tx.pure(params.audience),
         tx.pure(params.rewardPerUser),
         tx.object(params.clockId),
+        tx.object(params.registryId), // THÊM THAM SỐ registry vào đây!
       ],
     });
-    return handleTransaction(tx);
+
+    // 3. Transfer coin trả lại nếu cần
+    tx.transferObjects([splitCoinResult[0]], tx.pure(currentAccount.address));
+
+    const result = await handleTransaction(tx);
+
+    let capsuleId: string | undefined;
+    if (result?.objectChanges) {
+      for (const change of result.objectChanges) {
+        // Assuming the Capsule is a created object with a specific type name
+        if (
+          change.type === "created" &&
+          change.objectType.includes("::cofuture::Capsule")
+        ) {
+          capsuleId = change.objectId;
+          break;
+        }
+      }
+    }
+
+    return {
+      digest: result.digest,
+      success: true,
+      capsuleId: capsuleId,
+    };
   };
 
   // Claim a capsule
   const claimCapsule = async (params: ClaimCapsuleParams) => {
+    console.log("claimCapsule", params);
     if (!currentAccount) throw new Error("Please connect your Sui wallet");
     const tx = new TransactionBlock();
     tx.moveCall({
@@ -118,6 +170,7 @@ export function useWalletAdapter() {
         tx.object(params.clockId),
       ],
     });
+
     return handleTransaction(tx);
   };
 

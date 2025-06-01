@@ -3,15 +3,30 @@ import {
   Lock,
   Unlock,
   CheckCircle,
-  Clock,
   Coins,
   Image as ImageIcon,
   FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { type Capsule } from "@shared/schema";
 import { format, formatDistanceToNow } from "date-fns";
+
+// Capsule type LOCAL ONLY (no @shared/schema.ts)
+export interface Capsule {
+  id: string; // ID của object trên Sui blockchain (string)
+  title: string;
+  message: string;
+  unlockDate: string; // ISO date string
+  isPrivate: boolean;
+  creatorAddress: string;
+  status: "locked" | "unlockable" | "claimed";
+  createdAt: string;
+  claimedAt: string | null;
+  tokenAmount?: string | null;
+  nftId?: string | null;
+  nftName?: string | null;
+  nftCollection?: string | null;
+}
 
 interface CapsuleCardProps {
   capsule: Capsule;
@@ -143,7 +158,9 @@ export function CapsuleCard({ capsule, onOpen }: CapsuleCardProps) {
             {capsule.tokenAmount && (
               <div className="flex items-center space-x-1">
                 <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-white">{capsule.tokenAmount} SUI</span>
+                <span className="text-white">
+                  {Number(capsule.tokenAmount) / 1_000_000_000} SUI
+                </span>
               </div>
             )}
             {capsule.nftId && (

@@ -15,7 +15,7 @@ export function useSuiWallet() {
 
   return {
     isConnected: !!currentAccount,
-    address: currentAccount?.address || null,
+    address: currentAccount?.address || undefined,
     disconnect,
     connect,
     isConnecting,

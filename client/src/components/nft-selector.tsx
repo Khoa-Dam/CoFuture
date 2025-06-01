@@ -103,8 +103,10 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex space-x-2">
+    // Thay đổi đoạn grid NFT và layout chính như sau:
+
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Dialog open={isWalletModalOpen} onOpenChange={setIsWalletModalOpen}>
           <DialogTrigger asChild>
             <Button
@@ -114,25 +116,25 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
               disabled={!isConnected}
               className="flex-1 border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white disabled:opacity-50"
             >
-              <Wallet className="mr-2 h-4 w-4" />
+              <Wallet className="mr-2 h-4" />
               From Wallet
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-800 border-gray-700 max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogContent className="bg-slate-800 border-gray-700 max-w-md sm:max-w-2xl lg:max-w-4xl max-h-[80vh] rounded-2xl p-2 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-cyan-400">
+              <DialogTitle className="text-xl md:text-2xl font-bold text-cyan-400">
                 Select NFT from Wallet
               </DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-gray-400 text-xs md:text-sm">
                 Choose an NFT from your connected Sui wallet to include in your
                 time capsule.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search your NFTs..."
                   value={searchTerm}
@@ -142,11 +144,11 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
               </div>
 
               {/* NFT Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 max-h-72 sm:max-h-96 overflow-y-auto">
                 {isLoadingNFTs ? (
-                  <div className="col-span-full flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
-                    <span className="ml-2 text-gray-400">
+                  <div className="col-span-full flex items-center justify-center py-8 sm:py-12">
+                    <Loader2 className="h-7 w-7 animate-spin text-purple-400" />
+                    <span className="ml-2 text-gray-400 text-sm">
                       Loading your NFTs...
                     </span>
                   </div>
@@ -155,11 +157,11 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
                     {filteredNFTs.map((nft, index) => (
                       <motion.div
                         key={nft.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.2, delay: index * 0.05 }}
-                        className="bg-slate-900 rounded-lg overflow-hidden border border-gray-600 hover:border-purple-400 transition-all cursor-pointer"
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.18, delay: index * 0.03 }}
+                        className="bg-slate-900 rounded-xl overflow-hidden border border-gray-600 hover:border-purple-400 transition-all cursor-pointer"
                         onClick={() => handleNFTSelect(nft)}
                       >
                         <div className="aspect-square">
@@ -182,11 +184,11 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
                               nft.image ? "hidden" : ""
                             }`}
                           >
-                            <ImageIcon className="h-8 w-8 text-purple-400" />
+                            <ImageIcon className="h-7 w-7 text-purple-400" />
                           </div>
                         </div>
-                        <div className="p-3">
-                          <h4 className="font-medium text-white text-sm truncate">
+                        <div className="p-2">
+                          <h4 className="font-medium text-white text-xs sm:text-sm truncate">
                             {nft.name}
                           </h4>
                           <p className="text-xs text-gray-400 truncate">
@@ -200,9 +202,9 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
               </div>
 
               {!isLoadingNFTs && filteredNFTs.length === 0 && (
-                <div className="text-center py-8">
-                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-400">
+                <div className="text-center py-6 sm:py-8">
+                  <ImageIcon className="mx-auto h-10 w-10 text-gray-400 mb-3" />
+                  <p className="text-gray-400 text-xs sm:text-sm">
                     {walletNFTs.length === 0
                       ? "No NFTs found in your wallet"
                       : "No NFTs found matching your search"}
@@ -223,7 +225,6 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
           <Upload className="mr-2 h-4 w-4" />
           Upload Image
         </Button>
-
         <input
           id="nft-upload"
           type="file"
@@ -234,7 +235,7 @@ export function NFTSelector({ onSelectNFT, onUploadImage }: NFTSelectorProps) {
       </div>
 
       {!isConnected && (
-        <p className="text-xs text-yellow-400 text-center">
+        <p className="text-xs text-yellow-400 text-center mt-1">
           Connect your wallet to view your NFTs
         </p>
       )}

@@ -1,7 +1,7 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Navigation } from "@/components/navigation";
+import Navigation from "@/components/navigation";
 import {
   NotificationToast,
   useNotifications,
@@ -27,7 +27,7 @@ function App() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-slate-900 text-white">
+      <div className="min-h-screen bg-slate-900 text-white oveflow-hidden">
         <Navigation />
         <Router />
         <NotificationToast
