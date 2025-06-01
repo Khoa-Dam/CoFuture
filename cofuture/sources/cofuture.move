@@ -65,10 +65,23 @@ module cofuture::cofuture {
         reward_amount: u64,
     }
 
+    public struct CapsuleRegistry has key {
+    id: UID,
+    capsules: vector<ID>,
+}
+
+public entry fun create_capsule_registry(ctx: &mut TxContext) {
+    let registry = CapsuleRegistry {
+        id: object::new(ctx),
+        capsules: vector::empty<ID>(),
+    };
+    transfer::share_object(registry);
+}
+
     // --- Entry Functions ---
 
     /// Initialize vault for rewards
-    public entry fun init(ctx: &mut TxContext) {
+     fun init(ctx: &mut TxContext) {
     let vault = Vault {
         id: object::new(ctx),
         balance: balance::zero<0x2::sui::SUI>(),
@@ -95,11 +108,13 @@ public entry fun send_capsule(
     audience: vector<address>,
     reward_per_user: u64,
     clock: &Clock,
+    registry: &mut CapsuleRegistry,
     ctx: &mut TxContext,     
 ) {
     let creator = sender(ctx);
     let now = timestamp_ms(clock);
     let unlock_timestamp_ms = now + unlock_duration_ms;
+    // let unlock_timestamp_ms = 0;
 
     let audience_size = vector::length(&audience);
     let total_reward = reward_per_user * audience_size;
@@ -126,6 +141,7 @@ public entry fun send_capsule(
         audience_size: audience_size,
         total_reward,
     });
+    vector::push_back(&mut registry.capsules, object::uid_to_inner(&capsule.id));
 
     transfer::share_object(capsule);
 }
