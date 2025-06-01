@@ -95,7 +95,7 @@ export function useWalletAdapter() {
     if (!currentAccount) throw new Error("Please connect your Sui wallet");
     const tx = new TransactionBlock();
     const amountInMist = BigInt(Math.floor(amount * 1_000_000_000));
-    const [coin] = tx.splitCoins(tx.object(coinId), [amountInMist]);
+    const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
     tx.moveCall({
       target: `${PACKAGE_ID}::cofuture::deposit`,
       arguments: [tx.object(vaultId), coin, tx.pure(amountInMist)],
@@ -112,9 +112,7 @@ export function useWalletAdapter() {
     const totalReward = BigInt(params.rewardPerUser * params.audience.length);
 
     // 1. Split coin
-    const splitCoinResult = tx.splitCoins(tx.object(params.coinId), [
-      totalReward,
-    ]);
+    const splitCoinResult = tx.splitCoins(tx.gas, [totalReward]);
 
     // 2. Call send_capsule với đủ tham số
     tx.moveCall({
@@ -122,7 +120,7 @@ export function useWalletAdapter() {
       arguments: [
         tx.object(params.vaultId),
         splitCoinResult[0],
-        tx.pure(params.encryptedContent),
+        tx.pure(Array.from(params.encryptedContent)),
         tx.pure(params.unlockDurationMs),
         tx.pure(params.audience),
         tx.pure(params.rewardPerUser),

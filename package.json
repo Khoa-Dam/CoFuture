@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --outDir publish",
+    "build": "vite build --outDir public",
     "check": "tsc"
   },
   "dependencies": {
