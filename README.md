@@ -24,7 +24,7 @@ CoFuture enables you to create blockchain-secured time capsules on the Sui Netwo
 - **Backend:** Sui blockchain 
 
 ## Getting Started
-Source built with Next.js for UI: 
+Source built with Next.js for UI: https://github.com/Khoa-Dam/Co-Future-Nextjs
 [Instructions to install, run, or contribute]
 
 ### Setup Instructions Frontend
