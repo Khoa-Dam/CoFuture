@@ -1,3 +1,4 @@
+
 # CoFuture – Send Messages to the Future
 
 CoFuture enables you to create blockchain-secured time capsules on the Sui Network. Lock personalized messages, SUI tokens, or NFTs to be revealed at a future moment of your choosing. Effortlessly send capsules to yourself or others, ensuring privacy, transparency, and true ownership—your message can only be unlocked at the right time.
@@ -26,6 +27,8 @@ CoFuture enables you to create blockchain-secured time capsules on the Sui Netwo
 ## Getting Started
 Source built with Next.js for UI: https://github.com/Khoa-Dam/Co-Future-Nextjs
 [Instructions to install, run, or contribute]
+
+## Live webside: https://co-future-nextjs.vercel.app/
 
 ### Setup Instructions Frontend
 1. **Clone the Repository**: Clone the project repository to your local machine.
